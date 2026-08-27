@@ -69,8 +69,17 @@ def _(np, pd):
     df['HorsePower_log'] = np.log(df["HorsePower"])
     df['Performance_log'] = np.log(df["Performance"])
 
+    # nulls
+    #df = df.dropna()
+
     df.head()
     return (df,)
+
+
+@app.cell
+def _(df):
+    df.isna().sum()
+    return
 
 
 @app.cell
@@ -159,7 +168,114 @@ def layer_sizes(X,y):
 
 @app.cell
 def _(X_array, y_array):
-    layer_sizes(X_array,y_array)
+    n_x, n_y = layer_sizes(X_array,y_array)
+    return n_x, n_y
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Paso 2
+    Inicializar pesos $w$ y bias $b$ (aleatoriamente)
+    """)
+    return
+
+
+@app.cell
+def _(np):
+    def initialize_parameters(n_x, n_y):
+        """
+        Argumento:
+        n_x - dimensiones de entrada
+        n_y - dimensiones de salida
+        """
+
+        # Inicializamos pesos
+        W = np.random.randn(n_y, n_x)*0.1
+
+        # Inicializamos bias
+        b = np.random.randn(n_y, 1)*0.1
+
+        parameters = {
+            "W":W,
+            "b":b
+        }
+
+        return parameters
+
+    return (initialize_parameters,)
+
+
+@app.cell
+def _(initialize_parameters, n_x, n_y):
+    # inicializamos parametros 
+    parameters = initialize_parameters(n_x=n_x, n_y=n_y)
+    return (parameters,)
+
+
+@app.cell
+def _(np):
+    def forward_propagation(X, parameters):
+        """
+        Argumentos
+        X_array - arreglo de datos de entrada
+        parameters - diccionario con pesos W, y sesgo b
+        """
+
+        W = parameters["W"]
+        b = parameters["b"]
+
+        # propagacion hacia adelante
+        z = np.matmul(W,X) + b
+
+        # la prediccion (funcion identidad)
+        y_hat = z
+
+        return y_hat
+
+    return (forward_propagation,)
+
+
+@app.cell
+def _(X_array, forward_propagation, parameters):
+    # propagacion hacia adelanta
+    y_hat = forward_propagation(X=X_array, parameters=parameters)
+    y_hat
+    return (y_hat,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Paso 4
+    Cálculo de la función de pérdida (error). La función de pérdida que vamos a utilizar es la siguiente:
+
+    \begin{equation}
+    \mathcal{L}(w,b) = \frac{1}{2n} \sum_i^n (\hat{y}^{(i)} - y^{(i)})^2
+    \end{equation}
+    """)
+    return
+
+
+@app.cell
+def _(np):
+    def cost(y_hat, y):
+
+        n = y_hat.shape[1]
+
+        # calculo del costo
+        cost = np.nansum((y_hat - y)**2.0) / (2*n)
+
+        return cost
+    
+
+    return (cost,)
+
+
+@app.cell
+def _(cost, y_array, y_hat):
+    error = cost(y_hat=y_hat, y=y_array)
+    error
     return
 
 
