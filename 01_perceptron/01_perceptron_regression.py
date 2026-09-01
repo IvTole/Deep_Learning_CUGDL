@@ -19,11 +19,23 @@ def _():
     import numpy as np
     import pandas as pd
     import matplotlib.pyplot as plt
+    import time
 
     from sklearn.preprocessing import StandardScaler
     from sklearn.compose import ColumnTransformer
 
-    return ColumnTransformer, StandardScaler, mo, np, pd, plt
+    from sklearn.linear_model import LinearRegression
+
+    return (
+        ColumnTransformer,
+        LinearRegression,
+        StandardScaler,
+        mo,
+        np,
+        pd,
+        plt,
+        time,
+    )
 
 
 @app.cell
@@ -70,7 +82,7 @@ def _(np, pd):
     df['Performance_log'] = np.log(df["Performance"])
 
     # nulls
-    #df = df.dropna()
+    df = df.dropna()
 
     df.head()
     return (df,)
@@ -210,6 +222,7 @@ def _(np):
 def _(initialize_parameters, n_x, n_y):
     # inicializamos parametros 
     parameters = initialize_parameters(n_x=n_x, n_y=n_y)
+    parameters
     return (parameters,)
 
 
@@ -267,7 +280,7 @@ def _(np):
         cost = np.nansum((y_hat - y)**2.0) / (2*n)
 
         return cost
-    
+
 
     return (cost,)
 
@@ -276,6 +289,209 @@ def _(np):
 def _(cost, y_array, y_hat):
     error = cost(y_hat=y_hat, y=y_array)
     error
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Paso 5 Backpropagation
+
+    Se calcula el gradiente,
+
+    \begin{equation}
+    \nabla = (\partial/\partial w, \partial / \partial b)
+    \end{equation}
+
+    Ahora calculamos las derivadas parciales mostradas en secciones anteriores,
+
+    \begin{equation}
+    \frac{\partial \mathcal{L}}{\partial w} = \frac{1}{n} \sum_{i=1}^m \left( \hat{y}^{(i)} - y^{(i)} \right) x^{(i)}
+    \end{equation}
+
+    \begin{equation}
+    \frac{\partial \mathcal{L}}{\partial b} = \frac{1}{n} \sum_{i=1}^m \left( \hat{y}^{(i)} - y^{(i)} \right)
+    \end{equation}
+    """)
+    return
+
+
+@app.cell
+def _(np):
+    def back_propagation(y_hat, y, X):
+        """
+        Argumentos:
+        y_hat - prediccion (que viene de forward propagation)
+        y - etiquetas (reales)
+        X - matriz de características
+
+        Returns:
+        gradient - función gradiente
+        """
+
+        # numero de datos
+        n = X.shape[1]
+
+        # gradiente (derivadas parciales)
+        dZ = y_hat - y
+        dW = (1/n) * np.dot(dZ, X.T)
+        db = (1/n) * np.sum(dZ, axis=1, keepdims=True)
+
+        grads = {
+            "dW": dW,
+            "db": db
+        }
+
+        return grads
+
+    
+
+    return (back_propagation,)
+
+
+@app.cell
+def _(X_array, back_propagation, y_array, y_hat):
+    grads = back_propagation(y_hat=y_hat, y=y_array, X=X_array)
+    grads
+    return (grads,)
+
+
+@app.function
+def optimize_parameters(parameters, grads, learning_rate=1.0):
+    """
+    Argumentos:
+    parameters - w,b
+    learning_rate - tasa de aprendizaje alpha
+    grads - cálculo del gradiente para w,b
+
+    Returns:
+    parameters - parámetros actualizados w,b
+    """
+
+    # pesos W, bias b
+    W = parameters["W"]
+    b = parameters["b"]
+
+    # grads
+    dW = grads["dW"]
+    db = grads["db"]
+
+    # método de optimizacion (gradient descent)
+    W = W - learning_rate * dW
+    b = b - learning_rate * db
+
+    parameters = {
+        'W':W,
+        'b':b
+    }
+
+    return parameters
+
+
+@app.cell
+def _(grads, parameters):
+    learning_rate = 0.1
+    def _(parameters=parameters, grads=grads, learning_rate=learning_rate):
+        parameters = optimize_parameters(parameters=parameters, grads=grads, learning_rate=learning_rate)
+        return parameters
+    _()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## Neural Network
+    Juntamos todas las funciones anteriores y creamos un loop de entrenamiento
+    """)
+    return
+
+
+@app.cell
+def _(
+    X_array,
+    back_propagation,
+    cost,
+    forward_propagation,
+    initialize_parameters,
+    y_array,
+):
+    def nn_model(X,y, iterations=100, learning_rate=0.1, print_cost=False):
+        """
+        Argumentos:
+
+        Returns:
+        parameters - parametros aprendidos por el modelo. Que se pueden usar luego para hacer predicciones
+        """
+
+        # paso 1 definir dimensiones
+        n_x, n_y = layer_sizes(X_array,y_array)
+
+        # paso 2 inicializar w,b (aleatoriamente)
+        parameters = initialize_parameters(n_x=n_x, n_y=n_y)
+        #print(parameters)
+
+        # Ciclo de entrenamiento
+        for i in range(0,iterations):
+
+            # paso 3 forward propagation (inferencia)
+            y_hat = forward_propagation(X=X_array, parameters=parameters)
+    
+            # paso 4 calcular error (costo)
+            error = cost(y_hat=y_hat, y=y_array)
+    
+            # paso 5 backpropagation (calcular gradientes)
+            grads = back_propagation(y_hat=y_hat, y=y_array, X=X_array)
+            #print(grads)
+        
+            # paso 6 optimizar parametros (descenso del gradiente)
+            parameters = optimize_parameters(parameters=parameters, grads=grads, learning_rate=learning_rate)
+            #print(parameters)
+
+            if print_cost:
+                print(f"Costo después de la iteración {i}: {error}")
+
+        return parameters
+
+    return (nn_model,)
+
+
+@app.cell
+def _(X_array, nn_model, time, y_array):
+    t_init = time.time()
+    parameters_regression = nn_model(X=X_array, y=y_array, iterations=100, learning_rate=0.5, print_cost=True)
+    t_end = time.time()
+    print(t_end - t_init)
+    return parameters_regression, t_end, t_init
+
+
+@app.cell
+def _(parameters_regression):
+    # parametros resultantes del aprendizaje del perceptron
+    parameters_regression
+    return
+
+
+@app.cell
+def _(LinearRegression, X, time, y):
+    # paso 1
+    model = LinearRegression()
+
+    t_init_sklearn = time.time()
+    # paso 2
+    model.fit(X,y)
+    t_end_sklearn = time.time()
+    print(t_end_sklearn - t_init_sklearn)
+
+    # parametros
+    print(f"beta0 : {model.intercept_}")
+    print(f"betas : {model.coef_}")
+    return t_end_sklearn, t_init_sklearn
+
+
+@app.cell
+def _(t_end, t_end_sklearn, t_init, t_init_sklearn):
+    (t_end - t_init) / (t_end_sklearn - t_init_sklearn)
     return
 
 
