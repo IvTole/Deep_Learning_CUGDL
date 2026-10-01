@@ -3,6 +3,7 @@ from get_data import get_data
 from model_builder import Model_Classification
 from engine import train
 from config import HIDDEN_UNITS, LEARNING_RATE, EPOCHS
+from torchsummary import summary
 
 # Script principal de entrenamiento
 def main():
@@ -14,7 +15,7 @@ def main():
     model = Model_Classification(input_shape=64,
                                  hidden_units=HIDDEN_UNITS,
                                  output_features=10)
-    print(model.parameters)
+    print(summary(model))
     # función de pérdida
     loss_fn = torch.nn.CrossEntropyLoss()
     
@@ -23,8 +24,10 @@ def main():
 
     ## entrenamiento
     train(model=model,
-          X=X_train,
-          y=y_train,
+          X_train=X_train,
+          y_train=y_train,
+          X_test=X_test,
+          y_test=y_test,
           optimizer=optimizer,
           loss_fn=loss_fn,
           device="cpu",
