@@ -26,7 +26,8 @@ class Model_Classification(nn.Module):
         self.layer_2 = nn.Linear(in_features=hidden_units, out_features=hidden_units)
         self.layer_3 = nn.Linear(in_features=hidden_units, out_features=output_features)
         self.relu = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
       # ReLU se aplica entre capas
-       return self.layer_3(self.relu(self.layer_2(self.relu(self.layer_1(x)))))
+       return self.softmax(self.layer_3(self.relu(self.layer_2(self.relu(self.layer_1(x))))))
